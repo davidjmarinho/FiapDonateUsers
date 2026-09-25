@@ -33,12 +33,22 @@ public class UsersController : ControllerBase
             Cpf = cpf
         };
 
-        var resultado = await _userManager.CreateAsync(usuario, dto.Senha);
+        try
+        {
+            var resultado = await _userManager.CreateAsync(usuario, dto.Senha);
 
-        if (!resultado.Succeeded)
-            return BadRequest(resultado.Errors);
+            if (!resultado.Succeeded)
+                return BadRequest(resultado.Errors);
+        }
+        catch (DbUpdateException)
+        {
+            return BadRequest(new { mensagem = "Já existe um usuário cadastrado com este CPF." });
+        }
 
-        await _userManager.AddToRoleAsync(usuario, DoadorRole);
+        var roleResult = await _userManager.AddToRoleAsync(usuario, DoadorRole);
+
+        if (!roleResult.Succeeded)
+            return StatusCode(500, new { mensagem = "Falha ao atribuir função de Doador.", erros = roleResult.Errors });
 
         return Ok(new { mensagem = "Usuário registrado com sucesso." });
     }
