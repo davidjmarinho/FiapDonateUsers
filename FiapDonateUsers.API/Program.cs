@@ -32,6 +32,11 @@ using (var scope = app.Services.CreateScope())
 
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     await RoleSeeder.SeedAsync(roleManager);
+
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+    var adminEmail = builder.Configuration["Admin:Email"] ?? "gestor@fiapdonate.com";
+    var adminPassword = builder.Configuration["Admin:Password"] ?? "Gestor@123";
+    await AdminSeeder.SeedAsync(userManager, adminEmail, adminPassword);
 }
 
 if (app.Environment.IsDevelopment())
