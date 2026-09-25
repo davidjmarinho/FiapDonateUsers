@@ -15,13 +15,11 @@ public class UsersController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterUserDto dto)
     {
-        var usuario = new ApplicationUser { UserName = dto.Email, Email = dto.Email, Nome = dto.Nome };
+        var usuario = new ApplicationUser { UserName = dto.Email, Email = dto.Email, Nome = dto.Nome, Cpf = dto.Cpf };
         var resultado = await _userManager.CreateAsync(usuario, dto.Senha);
 
         if (!resultado.Succeeded)
             return BadRequest(resultado.Errors);
-
-        await _userManager.AddToRoleAsync(usuario, dto.Role);
 
         return Ok(new { mensagem = "Usuário registrado com sucesso." });
     }
