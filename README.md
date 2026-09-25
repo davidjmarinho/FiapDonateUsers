@@ -1,315 +1,115 @@
-# FiapDonateUsers - Serviço de Gerenciamento de Usuários
+# FiapDonateUsers
 
-## 📋 Sobre o Projeto
+API .NET 8 responsável pelo cadastro público de Doadores e pelo schema
+compartilhado de ASP.NET Identity da plataforma FiapDonate (Hackathon FIAP).
 
-**FiapDonateUsers** é uma API REST desenvolvida em **.NET 8** que gerencia o cadastro e autenticação de usuários para plataforma de doações **FIAP Donate**. O serviço é responsável por:
+> Este serviço é o único dono das migrations de Identity (`AspNetUsers`,
+> `AspNetRoles`, etc.). O `FiapDonateCampaign` só **lê** esse schema (mesmo
+> banco físico) para emitir o JWT no login — nunca gera migration a partir
+> dele. Veja o comentário em `IdentityStoreDbContext.cs` no repositório do
+> Campaign.
 
-- ✅ Registro e autenticação de usuários
-- ✅ Gerenciamento de roles e permissões (Gestor ONG, Doador)
-- ✅ Validação de dados de entrada
-- ✅ Persistência de dados em SQL Server
+## Tecnologias
 
-A arquitetura segue princípios de **Domain-Driven Design (DDD)** com separação clara de responsabilidades entre camadas.
+- .NET 8 e ASP.NET Core
+- Entity Framework Core 8 com SQL Server
+- ASP.NET Core Identity
+- FluentValidation
+- xUnit
 
----
+## Requisitos
 
-## 🏗️ Arquitetura
+- .NET SDK 8
+- Docker Desktop (para o SQL Server local e para build da imagem)
+- `kubectl` (opcional, para deploy no cluster)
 
-O projeto está estruturado em **4 camadas principais**:
+## Configuração
 
-### 1. **FiapDonateUsers.API** 🌐
-- **Responsabilidade**: Apresentação e exposição de endpoints HTTP
-- **Componentes principais**:
-  - `Controllers/UsersController.cs` - Endpoints REST para gerenciamento de usuários
-  - `Program.cs` - Configuração da aplicação, DI e middlewares
-  - `appsettings.json` - Configurações de ambiente
-  - `FiapDonateUsers.API.http` - Testes de requisições HTTP
+| Chave | Descrição |
+| --- | --- |
+| `ConnectionStrings__DefaultConnection` | Connection string do SQL Server. Deve apontar para o **mesmo banco físico** usado pelo `FiapDonateCampaign` (schema de Identity compartilhado). |
+| `Admin__Email` / `Admin__Password` | Credenciais do usuário `GestorONG` padrão, criado automaticamente no startup se ainda não existir nenhum GestorONG. Default local: `gestor@fiapdonate.com` / `Gestor@123`. |
 
-### 2. **FiapDonateUsers.Application** 📱
-- **Responsabilidade**: Regras de negócio e lógica de aplicação
-- **Componentes principais**:
-  - `DTOs/` - Data Transfer Objects para requisições/respostas
-  - `Validators/` - Validações de dados usando FluentValidation
+## Execução local
 
-### 3. **FiapDonateUsers.Domain** 📦
-- **Responsabilidade**: Conceitos principais do domínio
-- Status: Estrutura preparada para futuras entidades de domínio
+1. Suba o SQL Server:
 
-### 4. **FiapDonateUsers.Infrastructure** 🔌
-- **Responsabilidade**: Acesso a dados, identidade e recursos externos
-- **Componentes principais**:
-  - `Data/AppDbContext.cs` - Contexto do Entity Framework Core
-  - `Identity/` - Implementações de autenticação (ApplicationUser, RoleSeeder)
-  - `Migrations/` - Histórico de mudanças no banco de dados
-  - `DependencyInjection.cs` - Registro de serviços
-
-### Diagrama de Fluxo de Requisição
-
-```
-HTTP Request
-	 ↓
-[UsersController] (API)
-	 ↓
-[RegisterUserValidator] (Application)
-	 ↓
-[UserManager] (Infrastructure.Identity)
-	 ↓
-[AppDbContext] (Infrastructure.Data)
-	 ↓
-[SQL Server Database]
-```
-
----
-
-## 🛠️ Stack Tecnológico
-
-| Componente | Versão | Descrição |
-|-----------|--------|-----------|
-| .NET | 8.0 LTS | Framework principal |
-| Entity Framework Core | Última | ORM para acesso a dados |
-| ASP.NET Core Identity | Última | Gerenciamento de autenticação |
-| FluentValidation | Última | Validação de dados |
-| SQL Server | 2019+ | Banco de dados |
-| Swagger/OpenAPI | Última | Documentação de API |
-
----
-
-## 📋 Regras de Negócio
-
-### 1. **Registro de Usuários**
-- **Campo obrigatório**: Nome, Email, Senha, Role
-- **Valores permitidos para Role**: `GestorONG` ou `Doador`
-- **Email**: Deve ser único no sistema
-- **Senha**: Mínimo de 6 caracteres (sem caracteres especiais obrigatórios)
-
-### 2. **Validações de Entrada**
-Todas as requisições POST para registro devem incluir:
-```json
-{
-  "nome": "string (obrigatório, mínimo 3 caracteres)",
-  "email": "string (obrigatório, formato válido)",
-  "senha": "string (obrigatório, mínimo 6 caracteres)",
-  "role": "GestorONG | Doador (obrigatório)"
-}
-```
-
-### 3. **Roles e Permissões**
-- **Doador**: Usuário que realiza doações
-- **GestorONG**: Usuário que gerencia uma ONG
-
-### 4. **Resposta de Sucesso**
-```json
-{
-  "mensagem": "Usuário registrado com sucesso."
-}
-```
-
-### 5. **Tratamento de Erros**
-- Email duplicado → HTTP 400 (Bad Request)
-- Validação falha → HTTP 400 (Bad Request) + detalhes dos erros
-- Servidor indisponível → HTTP 500 (Internal Server Error)
-
----
-
-## 🚀 Como Iniciar
-
-### Pré-requisitos
-- .NET 8 SDK instalado
-- SQL Server 2019 ou superior
-- Visual Studio 2022+ / Visual Studio Code
-
-### Passos
-
-1. **Clone o repositório**
    ```bash
-   git clone <repository-url>
-   cd FiapDonateUsers
+   docker compose up -d
    ```
 
-2. **Restaure as dependências**
-   ```bash
-   dotnet restore
-   ```
+2. Rode a API (aplica as migrations automaticamente, inclusive na primeira
+   execução):
 
-3. **Configure a conexão com banco de dados**
-   - Edite `appsettings.json` em `FiapDonateUsers.API/`:
-   ```json
-   {
-	 "ConnectionStrings": {
-	   "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=FiapDonateDb;Trusted_Connection=True;..."
-	 }
-   }
-   ```
-
-4. **Execute as migrações do banco de dados**
-   ```bash
-   dotnet ef database update --project FiapDonateUsers.Infrastructure --startup-project FiapDonateUsers.API
-   ```
-
-5. **Inicie a aplicação**
    ```bash
    dotnet run --project FiapDonateUsers.API
    ```
 
-6. **Acesse a API**
-   - Swagger UI: `http://localhost:5000/swagger/index.html`
-   - Base URL: `http://localhost:5000/api/`
+3. Confirme que o serviço está saudável:
 
----
+   ```bash
+   curl http://localhost:5000/health/ready
+   ```
 
-## 📡 Endpoints
+Swagger disponível em `http://localhost:5000/swagger` em ambiente
+`Development`.
 
-### Registro de Usuário
+## API HTTP
+
+| Método | Rota | Acesso |
+| --- | --- | --- |
+| `POST` | `/api/users/register` | Público. Sempre cria o usuário com role `Doador` — não é possível escolher outra role pela API. |
+
+### Cadastro de Doador
 
 ```http
 POST /api/users/register
 Content-Type: application/json
 
 {
-  "nome": "João Silva",
-  "email": "joao@example.com",
-  "senha": "senha123",
-  "role": "Doador"
-}
-```
-
-**Respostas:**
-- ✅ **200 OK**: Usuário criado com sucesso
-- ❌ **400 Bad Request**: Validação falhou ou email duplicado
-
----
-
-## 🗄️ Banco de Dados
-
-### Schema Principal
-
-**Tabelas criadas pela ASP.NET Identity:**
-- `AspNetUsers` - Usuários do sistema
-- `AspNetRoles` - Roles disponíveis
-- `AspNetUserRoles` - Atribuição de roles aos usuários
-
-### Extensões Customizadas
-- **ApplicationUser**: Estende IdentityUser com campo `Nome`
-
-### Roles Padrões Seedados
-- `GestorONG`
-- `Doador`
-
----
-
-## 🧪 Testes
-
-### Arquivo de Testes HTTP
-- Localização: `FiapDonateUsers.API/FiapDonateUsers.API.http`
-- Formato: REST Client (VS Code) ou Postman
-
-### Exemplo de Teste
-```http
-### Registrar novo usuário
-POST http://localhost:5000/api/users/register
-Content-Type: application/json
-
-{
-  "nome": "Maria Santos",
+  "nome": "Maria Silva",
   "email": "maria@example.com",
-  "senha": "pass123",
-  "role": "GestorONG"
+  "cpf": "111.444.777-35",
+  "senha": "SenhaForte1"
 }
 ```
 
----
+Regras: `email` deve ser único (garantido pela unicidade de `UserName`,
+que é sempre igual ao email); `cpf` precisa ter dígito verificador válido e
+ser único no banco; `senha` tem no mínimo 6 caracteres.
 
-## 📁 Estrutura de Pastas
+O login (`POST /api/auth/login`) e a emissão do JWT ficam no
+`FiapDonateCampaign`, que consulta este mesmo banco.
 
-```
-FiapDonateUsers/
-├── FiapDonateUsers.API/
-│   ├── Controllers/
-│   ├── Properties/
-│   ├── Program.cs
-│   └── appsettings*.json
-├── FiapDonateUsers.Application/
-│   ├── DTOs/
-│   └── Validators/
-├── FiapDonateUsers.Domain/
-│   └── [Entidades de domínio]
-├── FiapDonateUsers.Infrastructure/
-│   ├── Data/
-│   ├── Identity/
-│   └── Migrations/
-└── README.md
+### Conta GestorONG padrão
+
+Criada automaticamente no primeiro startup, se ainda não existir nenhum
+usuário com role `GestorONG`. Use as credenciais de `Admin:Email`/
+`Admin:Password` (default local: `gestor@fiapdonate.com` / `Gestor@123`)
+para logar no `FiapDonateCampaign` e testar a criação de campanhas.
+
+## Testes
+
+```bash
+dotnet test FiapDonateUsers.slnx
 ```
 
----
+## Kubernetes
 
-## 🔐 Segurança
+Os manifestos ficam em [k8s](k8s):
 
-### Implementado
-- ✅ Autenticação via ASP.NET Core Identity
-- ✅ Senhas hasheadas (PBKDF2 com salt)
-- ✅ Validação de entrada com FluentValidation
-- ✅ Isolamento de dados por role
-
-### Recomendações para Produção
-- 🔒 Implementar JWT para autorização stateless
-- 🔒 Adicionar rate limiting
-- 🔒 HTTPS obrigatório
-- 🔒 Configurar CORS apropriadamente
-- 🔒 Implementar logging e auditoria
-- 🔒 Validar email com token de confirmação
-
----
-
-## 📝 Configuração de Logging
-
-O projeto utiliza logging nativo do .NET. Configurações em `appsettings.json`:
-
-```json
-{
-  "Logging": {
-	"LogLevel": {
-	  "Default": "Information",
-	  "Microsoft.AspNetCore": "Warning"
-	}
-  }
-}
+```bash
+docker build -t fiapdonateusers:local .
+cp k8s/secret.example.yaml k8s/secret.yaml   # ajuste credenciais reais
+kubectl apply -f k8s/configmap.yaml -f k8s/secret.yaml -f k8s/deployment.yaml -f k8s/service.yaml
+kubectl get pods
 ```
 
----
+## Limitações conhecidas
 
-## 🤝 Contribuindo
-
-1. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-2. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-3. Push para a branch (`git push origin feature/AmazingFeature`)
-4. Abra um Pull Request
-
----
-
-## 📄 Licença
-
-Projeto desenvolvido para FIAP.
-
----
-
-## 👥 Suporte
-
-Para dúvidas ou problemas, abra uma issue no repositório ou entre em contato com o time de desenvolvimento.
-
----
-
-## 🗺️ Roadmap Futuro
-
-- [ ] Implementar autenticação JWT
-- [ ] Adicionar endpoints de login/logout
-- [ ] Gerenciamento de perfil de usuário
-- [ ] Recuperação de senha por email
-- [ ] Testes unitários
-- [ ] Testes de integração
-- [ ] Documentação de API com Swagger aprimorado
-- [ ] Containerização com Docker
-
----
-
-**Última atualização**: 2025
-**Versão da API**: v1
+- Este repositório mantém seu próprio `docker-compose.yml` com um SQL
+  Server isolado para desenvolvimento solo. Para rodar lado a lado com o
+  `FiapDonateCampaign` (necessário para testar login/criação de campanha
+  ponta a ponta), aponte a connection string de um dos dois serviços para o
+  SQL Server que o outro já subiu, em vez de rodar os dois `docker compose`
+  simultaneamente (ambos usam a porta `1433` por padrão).
