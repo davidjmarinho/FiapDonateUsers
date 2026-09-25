@@ -23,6 +23,9 @@ public static class AdminSeeder
             throw new InvalidOperationException(
                 $"Falha ao criar usuário GestorONG padrão: {string.Join(", ", resultado.Errors.Select(e => e.Description))}");
 
-        await userManager.AddToRoleAsync(admin, "GestorONG");
+        var roleResult = await userManager.AddToRoleAsync(admin, "GestorONG");
+        if (!roleResult.Succeeded)
+            throw new InvalidOperationException(
+                $"Falha ao atribuir role GestorONG: {string.Join(", ", roleResult.Errors.Select(e => e.Description))}");
     }
 }
