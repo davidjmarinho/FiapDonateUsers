@@ -48,10 +48,10 @@ compartilhado de ASP.NET Identity da plataforma FiapDonate (Hackathon FIAP).
 3. Confirme que o serviço está saudável:
 
    ```bash
-   curl http://localhost:5000/health/ready
+   curl http://localhost:5097/health/ready
    ```
 
-Swagger disponível em `http://localhost:5000/swagger` em ambiente
+Swagger disponível em `http://localhost:5097/swagger` em ambiente
 `Development`.
 
 ## API HTTP
