@@ -5,4 +5,8 @@
     <Project Path="FiapDonateUsers.Domain/FiapDonateUsers.Domain.csproj" />
     <Project Path="FiapDonateUsers.Infrastructure/FiapDonateUsers.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="FiapDonateUsers.Domain.Tests/FiapDonateUsers.Domain.Tests.csproj" />
+    <Project Path="FiapDonateUsers.Application.Tests/FiapDonateUsers.Application.Tests.csproj" />
+  </Folder>
 </Solution>
