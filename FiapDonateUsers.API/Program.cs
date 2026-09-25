@@ -1,9 +1,11 @@
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using FiapDonateUsers.Application.Validators;
 using FiapDonateUsers.Infrastructure;
+using FiapDonateUsers.Infrastructure.Data;
 using FiapDonateUsers.Infrastructure.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,6 +27,9 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await dbContext.Database.MigrateAsync();
+
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     await RoleSeeder.SeedAsync(roleManager);
 }
