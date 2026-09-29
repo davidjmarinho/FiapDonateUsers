@@ -1,0 +1,7 @@
+# k8s/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fiapdonateusers-config
+data:
+  Admin__Email: "gestor@fiapdonate.com"

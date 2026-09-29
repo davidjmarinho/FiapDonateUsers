@@ -1,0 +1,38 @@
+# k8s/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fiapdonateusers
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fiapdonateusers
+  template:
+    metadata:
+      labels:
+        app: fiapdonateusers
+    spec:
+      containers:
+        - name: users
+          image: fiapdonateusers:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: fiapdonateusers-config
+            - secretRef:
+                name: fiapdonateusers-secret
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
