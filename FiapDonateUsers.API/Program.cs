@@ -1,13 +1,17 @@
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using FiapDonateUsers.API.Services;
 using FiapDonateUsers.Application.Validators;
 using FiapDonateUsers.Infrastructure;
 using FiapDonateUsers.Infrastructure.Data;
 using FiapDonateUsers.Infrastructure.Identity;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +24,29 @@ builder.Services.AddValidatorsFromAssemblyContaining<RegisterUserValidator>();
 builder.Services.AddFluentValidationAutoValidation();
 
 builder.Services.AddControllers();
+builder.Services.AddScoped<ITokenService, TokenService>();
+
+var jwtKey = builder.Configuration["Jwt:Key"] ?? "LocalDevJwtKeyChangeMe_1234567890";
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "FiapDonateCampaign",
+        ValidAudience = builder.Configuration["Jwt:Audience"] ?? "FiapDonateCampaignUsers",
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+    };
+});
+
+builder.Services.AddAuthorization();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -55,6 +82,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.MapControllers();
 
 // /health/live: só confirma que o processo está de pé, sem checar dependências
@@ -67,6 +97,13 @@ app.MapHealthChecks("/health/live", new HealthCheckOptions
 // /health/ready: executa os checks marcados com a tag "ready" (SQL Server).
 // Usado pela readinessProbe.
 app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready")
+});
+
+// Alias mantido por compatibilidade com integrações e probes que esperam
+// /health como endpoint principal.
+app.MapHealthChecks("/health", new HealthCheckOptions
 {
     Predicate = check => check.Tags.Contains("ready")
 });

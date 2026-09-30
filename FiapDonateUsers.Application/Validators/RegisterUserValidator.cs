@@ -8,11 +8,11 @@ public class RegisterUserValidator : AbstractValidator<RegisterUserDto>
 {
     public RegisterUserValidator()
     {
-        RuleFor(x => x.Nome).NotEmpty();
+        RuleFor(x => x.NomeNormalizado).NotEmpty();
         RuleFor(x => x.Email).NotEmpty().EmailAddress();
-        RuleFor(x => x.Senha).NotEmpty().MinimumLength(6);
-        RuleFor(x => x.Cpf).NotEmpty()
-            .Must(CpfValidator.IsValid)
+        RuleFor(x => x.SenhaNormalizada).NotEmpty().MinimumLength(6);
+        RuleFor(x => x.CpfNormalizado)
+            .Must(cpf => string.IsNullOrWhiteSpace(cpf) || CpfValidator.IsValid(cpf))
             .WithMessage("CPF inválido.");
     }
 }
